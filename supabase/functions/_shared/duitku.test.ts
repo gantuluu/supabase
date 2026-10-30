@@ -29,12 +29,12 @@ Deno.test("signature comparison accepts equal values and rejects mismatches", ()
 Deno.test("only documented Duitku callback result codes are accepted", () => {
   for (const code of ["00", "01", "02"]) {
     if (!isSupportedCallbackResultCode(code)) {
-      throw new Error(\`Expected \${code} to be supported\`);
+      throw new Error(`Expected ${code} to be supported`);
     }
   }
   for (const code of ["03", "", "success"]) {
     if (isSupportedCallbackResultCode(code)) {
-      throw new Error(\`Expected \${code} to be rejected\`);
+      throw new Error(`Expected ${code} to be rejected`);
     }
   }
 });
