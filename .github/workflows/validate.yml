@@ -1,0 +1,37 @@
+name: Validate Supabase Source
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-edge-functions:
+    name: Deno lint, type check, and tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Lint Edge Functions
+        run: deno lint supabase/functions
+
+      - name: Type-check invoice function
+        run: deno check supabase/functions/duitku-create-invoice/index.ts
+
+      - name: Type-check callback function
+        run: deno check supabase/functions/duitku-callback/index.ts
+
+      - name: Run shared tests
+        run: deno test supabase/functions/_shared
+
+      # Intentionally no Supabase link, migration push, or function deployment.
