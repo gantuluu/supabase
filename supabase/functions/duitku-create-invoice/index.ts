@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
       user_id: `eq.${userId}`,
       limit: "1",
     });
-    const orderResponse = await dbRequest(supabaseUrl, `payment_orders?${orderQuery.toString()}`);
+    const orderResponse = await dbRequest(supabaseUrl, `duitku_payment_orders?${orderQuery.toString()}`);
     if (!orderResponse.ok) {
       console.error("Could not load payment order:", await orderResponse.text());
       return json({ success: false, error: "Could not load payment order" }, 500);
