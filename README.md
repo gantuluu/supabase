@@ -185,7 +185,7 @@ The `user_id` foreign keys use `ON DELETE RESTRICT` intentionally so deleting an
 - Never trust an amount supplied by a browser.
 - Never expose Duitku merchant keys or Supabase secret/service-role keys to browser code.
 - Do not grant client-side write access to payment or order ledgers.
-- A valid callback is the payment-status source of truth; a customer return redirect is not proof of payment.
+- The independently verified Duitku POP transaction-status response is the payment-status source of truth; a callback triggers the check, and a customer return redirect is not proof of payment.
 - Reconcile ambiguous invoice requests before retrying them.
 - Review migrations and workflow changes before applying them to any Supabase project.
 - Repository commits do not imply that a live database or Edge Function has changed.
