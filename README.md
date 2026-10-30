@@ -1,166 +1,181 @@
-# Supabase Project
+# Supabase Infrastructure Repository
 
-Repository for Supabase database migrations, Edge Functions, seed data, and local development configuration.
+This repository is the version-controlled source of truth for Supabase database migrations, Edge Functions, local configuration, tests, and operational documentation.
 
-## Project Structure
+**This repository does not contain production database records or secrets.** Live data remains in the Supabase database. Migrations and Edge Functions are stored here and are not applied or deployed automatically by this repository.
 
-```text
+## Repository Structure
+
+\`\`\`text
 .
-├── .gitignore
-├── README.md
-└── supabase/
-    ├── migrations/
-    │   └── 20261031000000_create_duitku_transactions.sql
-    ├── functions/
-    │   ├── duitku-create-invoice/
-    │   │   └── index.ts
-    │   └── duitku-callback/
-    │       └── index.ts
-    ├── seed.sql
-    └── config.toml
-```
+├── .github/workflows/validate.yml
+├── database/
+│   └── README.md
+├── docs/
+│   ├── architecture.md
+│   ├── database.md
+│   ├── deployment.md
+│   └── edge-functions.md
+├── supabase/
+│   ├── config.toml
+│   ├── migrations/
+│   ├── functions/
+│   │   ├── _shared/
+│   │   ├── duitku-create-invoice/
+│   │   └── duitku-callback/
+│   └── seed.sql
+├── tests/
+│   └── README.md
+└── README.md
+\`\`\`
 
-## Requirements
+## Current Database Objects
 
-- [Supabase CLI](https://supabase.com/docs/guides/cli)
-- Docker-compatible runtime for the local Supabase stack
+### \`public.payment_orders\`
 
-## Database
-
-### `public.duitku_transactions`
-
-The migration creates a transaction ledger for Duitku POP.
+A trusted order ledger. A trusted application backend must create these records after validating the cart/order and calculating the final amount. Browser clients must never choose the authoritative amount or write order rows directly.
 
 | Column | Purpose |
 | --- | --- |
-| `id` | Internal transaction UUID |
-| `user_id` | Authenticated Supabase user who initiated payment |
-| `merchant_order_id` | Unique server-generated Duitku order ID |
-| `merchant_code` | Duitku merchant code used for the invoice |
-| `amount`, `currency` | Amount in IDR |
-| `product_details` | Description sent to Duitku |
-| `customer_email`, `customer_phone` | Customer contact details |
-| `payment_method` | Optional Duitku payment method |
-| `status` | `pending`, `paid`, `failed`, or `expired` |
-| `duitku_reference`, `payment_url` | Duitku invoice reference and checkout URL |
-| `duitku_status_code`, `duitku_status_message` | Create Invoice response metadata |
-| `callback_result_code`, `callback_reference`, `callback_payload` | Verified callback data |
-| `paid_at`, `expires_at`, `failure_reason` | Payment lifecycle timestamps and failure reason |
-| `created_at`, `updated_at` | Audit timestamps |
+| \`id\` | Order UUID |
+| \`user_id\` | Owning Supabase Auth user |
+| \`amount\`, \`currency\` | Trusted amount in IDR |
+| \`product_details\` | Invoice description |
+| \`customer_email\`, \`customer_phone\` | Trusted customer contact |
+| \`status\` | \`pending\`, \`paid\`, \`cancelled\`, or \`expired\` |
+| \`expires_at\`, \`paid_at\` | Order lifecycle timestamps |
+| \`created_at\`, \`updated_at\` | Audit timestamps |
 
-RLS is enabled. Authenticated users can only select rows where `user_id = auth.uid()`. Direct insert, update, and delete privileges are revoked from `anon` and `authenticated`; Edge Functions write with a backend secret.
+Authenticated users can only read their own order rows. Insert/update/delete privileges are not granted to \`anon\` or \`authenticated\`.
 
-Apply the migration to the linked project:
+### \`public.duitku_transactions\`
 
-```bash
+A payment-attempt ledger for Duitku POP.
+
+| Column | Purpose |
+| --- | --- |
+| \`id\` | Internal transaction UUID |
+| \`order_id\` | Associated trusted order; nullable only for legacy rows |
+| \`user_id\` | Authenticated owner |
+| \`merchant_order_id\` | Unique server-generated Duitku order ID |
+| \`merchant_code\`, \`amount\`, \`currency\` | Merchant and payment amount |
+| \`product_details\`, \`customer_email\`, \`customer_phone\` | Invoice details copied from trusted order |
+| \`payment_method\` | Optional Duitku payment method |
+| \`status\` | \`pending\`, \`paid\`, \`failed\`, or \`expired\` |
+| \`duitku_reference\`, \`payment_url\` | Duitku reference and checkout URL |
+| \`duitku_status_code\`, \`duitku_status_message\` | Create Invoice response metadata |
+| \`callback_result_code\`, \`callback_reference\`, \`callback_payload\` | Verified callback data |
+| \`paid_at\`, \`expires_at\`, \`failure_reason\` | Payment lifecycle metadata |
+| \`created_at\`, \`updated_at\` | Audit timestamps |
+
+Authenticated users can only read their own transaction rows. Client-side writes are revoked. Service-role access is restricted to backend functions.
+
+## Database Migrations
+
+Migrations are the authoritative schema history. Do not maintain a second editable copy of table definitions.
+
+Current migrations:
+
+1. \`20261031000000_create_duitku_transactions.sql\`
+2. \`20261031010000_add_trusted_payment_orders.sql\`
+
+Apply migrations only after reviewing the target project and obtaining explicit deployment authorization:
+
+\`\`\`bash
 supabase link --project-ref <project-ref>
 supabase db push
-```
+\`\`\`
 
-For local development, use:
-
-```bash
-supabase start
-supabase db reset
-```
-
-**Data API note:** Supabase no longer automatically exposes newly created public tables to the Data API on new projects. If the Edge Functions use PostgREST (as implemented here), ensure the `public` schema is enabled in **Project Settings → API → Exposed schemas**. Do not grant public write access to this table; RLS and the grants in the migration intentionally limit client access to SELECT only.
+The commands above are documentation only; no database has been linked or changed as part of the repository remediation.
 
 ## Edge Functions
 
-### `duitku-create-invoice`
+### \`duitku-create-invoice\`
 
-Creates and stores a Duitku POP invoice.
+Creates a Duitku POP invoice from a trusted \`payment_orders\` row.
 
-- Requires a signed-in Supabase user JWT (`verify_jwt = true`) and independently verifies that token with Supabase Auth.
-- Generates `merchantOrderId` on the server; clients must not send their own order ID.
-- Creates a `pending` transaction row before calling Duitku.
-- Uses the sandbox endpoint by default. Set `DUITKU_ENV=production` for production.
-- Accepts `paymentAmount`, `productDetails`, `email`, and optional `phoneNumber`, `paymentMethod`, `expiryPeriod`.
-- Checks Duitku HTTP success and its business `statusCode = "00"`, plus a valid `reference` and HTTPS `paymentUrl`.
-- Saves the Duitku reference, checkout URL, and response status before returning checkout details.
+Request body:
 
-Example request:
-
-```json
+\`\`\`json
 {
-  "paymentAmount": 150000,
-  "productDetails": "Order payment",
-  "email": "customer@example.com",
-  "paymentMethod": "SP",
-  "expiryPeriod": 60
+  "orderId": "00000000-0000-4000-8000-000000000000",
+  "paymentMethod": "SP"
 }
-```
+\`\`\`
 
-Example success response:
+- Requires a signed-in Supabase user JWT.
+- Confirms the order belongs to the authenticated user and is still payable.
+- Reads amount, currency, description, email, phone, and expiry from the database.
+- Does not accept client-supplied amount, product description, customer email, or expiry.
+- Uses a unique active-order index to prevent concurrent duplicate invoices.
+- Reuses a previously saved pending invoice.
+- Keeps ambiguous network/server outcomes pending for reconciliation instead of blindly creating another invoice.
+- Uses sandbox by default; set \`DUITKU_ENV=production\` only when production is approved.
 
-```json
-{
-  "success": true,
-  "data": {
-    "transactionId": "<uuid>",
-    "merchantOrderId": "TRX-<server-generated-id>",
-    "reference": "<duitku-reference>",
-    "paymentUrl": "https://...",
-    "amount": 150000,
-    "currency": "IDR",
-    "status": "pending"
-  }
-}
-```
+The upstream trusted application backend is responsible for creating \`payment_orders\` after validating the real cart/order. It must use a backend-only key and must not expose that key to a browser.
 
-### `duitku-callback`
+### \`duitku-callback\`
 
 Receives Duitku POP payment notifications.
 
-- `verify_jwt = false` because Duitku does not send a Supabase user JWT.
-- Accepts the documented `application/x-www-form-urlencoded` callback format.
-- Verifies the HMAC-SHA256 signature, merchant code, merchant order ID, amount, and (when already stored) Duitku reference.
-- Marks a transaction `paid` only when `resultCode = "00"`; every other result code is treated as non-success.
-- Persists callback fields before acknowledging with plain-text `OK`.
-- Handles duplicate callbacks without downgrading a transaction already marked `paid`. Failed callbacks cannot overwrite a paid state; a later verified success can transition a failed transaction to paid.
+- Public endpoint; \`verify_jwt = false\` because Duitku does not send a Supabase user JWT.
+- Accepts the documented \`application/x-www-form-urlencoded\` format.
+- Verifies the HMAC-SHA256 signature using \`merchantCode + amount + merchantOrderId\`.
+- Validates merchant code, amount, merchant order ID, reference, and supported result code.
+- Rejects duplicate parameter names and invalid signatures.
+- Calls \`public.apply_duitku_callback\` to reconcile the transaction and order atomically.
+- Returns plain-text \`OK\` only after a successful reconciliation or confirmed duplicate.
 
-## Environment Variables / Secrets
+Duitku's POP callback documentation contains inconsistent failure-code references: the parameter table lists \`01\`, while the result-code table lists \`02\`. The implementation accepts both as failure and treats only \`00\` as paid. Unknown codes are rejected without changing transaction state.
 
-Configure these in **Edge Functions → Secrets** or through the Supabase CLI. Never commit real values.
+## Secrets and Environment
+
+Never commit real keys, tokens, passwords, or production environment files.
+
+Required Edge Function secrets:
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `DUITKU_MERCHANT_CODE` | Yes | Duitku merchant code |
-| `DUITKU_MERCHANT_KEY` | Yes | Duitku HMAC merchant key |
-| `DUITKU_CALLBACK_URL` | Yes | Public URL of the deployed `duitku-callback` function |
-| `DUITKU_RETURN_URL` | Yes | Customer redirect URL after payment |
-| `DUITKU_ENV` | No | `sandbox` (default) or `production` |
-| `SUPABASE_URL` | Yes | Supabase project URL (provided by hosted Edge Functions) |
-| `SUPABASE_PUBLISHABLE_KEYS` or `SUPABASE_ANON_KEY` | Yes | Used to validate the user's access token |
-| `SUPABASE_SECRET_KEYS` or `SUPABASE_SERVICE_ROLE_KEY` | Yes | Backend-only key for transaction persistence |
+| \`DUITKU_MERCHANT_CODE\` | Yes | Duitku merchant code |
+| \`DUITKU_MERCHANT_KEY\` | Yes | Duitku HMAC merchant key |
+| \`DUITKU_CALLBACK_URL\` | Yes | Public HTTPS callback URL |
+| \`DUITKU_RETURN_URL\` | Yes | Customer return URL (HTTPS) |
+| \`DUITKU_ENV\` | No | \`sandbox\` (default) or \`production\` |
+| \`SUPABASE_URL\` | Yes | Supabase project URL |
+| \`SUPABASE_PUBLISHABLE_KEYS\` or \`SUPABASE_ANON_KEY\` | Yes | Validates the user access token |
+| \`SUPABASE_SECRET_KEYS\` or \`SUPABASE_SERVICE_ROLE_KEY\` | Yes | Backend-only database access |
 
-The functions support the current default `SUPABASE_PUBLISHABLE_KEYS` / `SUPABASE_SECRET_KEYS` JSON environment variables and legacy `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` variables.
+The current key-set variables are read from a JSON object containing a \`default\` property. Legacy anon/service-role variables are supported for compatibility. Use the Supabase Dashboard or CLI to configure secrets; never store their values in Git.
 
-For local development, put the values in `supabase/functions/.env`; this path is ignored by Git.
+For local development, copy \`supabase/functions/.env.example\` to \`supabase/functions/.env\` and fill it with local test values. The actual \`.env\` file is ignored by Git.
 
-## Deploy Edge Functions
+## Validation
 
-```bash
-supabase functions deploy duitku-create-invoice
-supabase functions deploy duitku-callback
-```
+The GitHub Actions workflow checks formatting, lint, type checking, and the shared Deno tests. It does not connect to a Supabase project, apply migrations, or deploy functions.
 
-Configure the callback URL as:
+Run locally:
 
-```text
-https://<project-ref>.supabase.co/functions/v1/duitku-callback
-```
+\`\`\`bash
+deno fmt --check supabase/functions
+deno lint supabase/functions
+deno check supabase/functions/duitku-create-invoice/index.ts
+deno check supabase/functions/duitku-callback/index.ts
+deno test supabase/functions/_shared
+\`\`\`
 
-## Important Integration Boundary
+## Security and Operational Boundaries
 
-There is not yet an application order/catalog table in this repository. Therefore the current invoice endpoint accepts the requested amount and product description from the authenticated client, then records those values before creating the Duitku invoice. The callback is reconciled against that stored transaction amount. This prevents callback amount tampering and prevents clients from changing an existing transaction, but it does **not** prove that the initial amount matches a real cart/order total. Before accepting production orders, derive the amount and description from a trusted order record in the application's database.
-
-Do not expose Duitku merchant keys or Supabase secret/service-role keys in browser code.
+- Never trust an amount supplied by a browser.
+- Never expose Duitku merchant keys or Supabase secret/service-role keys to browser code.
+- Do not grant client-side write access to payment or order ledgers.
+- A valid callback is the payment-status source of truth; a customer return redirect is not proof of payment.
+- Reconcile ambiguous invoice requests before retrying them.
+- Review migrations and workflow changes before applying them to any Supabase project.
+- Repository commits do not imply that a live database or Edge Function has changed.
 
 ## References
 
 - [Duitku POP API documentation](https://docs.duitku.com/pop/en/)
 - [Supabase Edge Function secrets](https://supabase.com/docs/guides/functions/secrets)
 - [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
-- [Supabase Data API security](https://supabase.com/docs/guides/api/securing-your-api)
+- [Supabase CLI migrations](https://supabase.com/docs/guides/deployment/database-migrations)
