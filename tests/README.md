@@ -5,6 +5,7 @@
 Deno tests cover:
 - HMAC-SHA256 output against a known test vector.
 - Signature equality/mismatch behavior.
+- MD5 output used by the official POP transaction-status request.
 - Accepted Duitku callback result codes.
 
 GitHub Actions also runs Deno lint and type checks for both Edge Functions.
