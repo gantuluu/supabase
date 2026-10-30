@@ -32,9 +32,13 @@ Network timeouts, provider 5xx, malformed success responses, and persistence fai
 **Method:** POST  
 **JWT verification:** disabled because Duitku does not provide a Supabase user JWT. The handler validates the Duitku HMAC-SHA256 signature.
 
-The callback accepts URL-encoded form fields. Required validation fields include merchant code, amount, merchant order ID, result code, and signature. The optional reference is cross-checked when supplied. Only `00` is success. Duitku's current POP page inconsistently documents `01` and `02` as failure codes; both are accepted as failure. Unknown codes are rejected.
+The callback accepts URL-encoded form fields. It validates merchant code, amount, merchant order ID, result code, and signature; the optional callback reference is cross-checked when supplied.
 
-The callback calls `rpc/apply_duitku_callback`; transaction/order reconciliation is atomic inside PostgreSQL.
+Before changing local state, it calls the official POP transaction-status endpoint at `https://api-sandbox.duitku.com/api/merchant/transactionStatus` or `https://api-prod.duitku.com/api/merchant/transactionStatus`. The request signature is MD5 of `merchantCode + merchantOrderId + merchantKey`, as implemented by Duitku's official `Pop::transactionStatus` library method. The response's merchant order ID and amount must match. `statusCode = 00` is paid, `01` is pending (the callback receives HTTP 503 so it can be retried), and `02` is cancelled/failed. Unknown statuses are not settled.
+
+Duitku's POP callback page itself has an inconsistency: its parameter table lists `01` as failed, while its result-code table lists `02` as failed. The independent POP status response is used as the settlement source of truth.
+
+After independent provider verification, the callback calls `rpc/apply_duitku_callback`; transaction/order reconciliation is atomic inside PostgreSQL.
 
 ## duitku-expire-orders
 
