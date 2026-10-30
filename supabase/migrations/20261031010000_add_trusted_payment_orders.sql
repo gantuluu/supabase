@@ -129,11 +129,8 @@ begin
     return jsonb_build_object('outcome', 'transaction_mismatch');
   end if;
 
-  if p_reference is null or p_reference = '' then
-    return jsonb_build_object('outcome', 'reference_required');
-  end if;
-
-  if v_tx.duitku_reference is not null and v_tx.duitku_reference <> p_reference then
+  if p_reference is not null and p_reference <> ''
+    and v_tx.duitku_reference is not null and v_tx.duitku_reference <> p_reference then
     return jsonb_build_object('outcome', 'reference_mismatch');
   end if;
 
@@ -167,9 +164,9 @@ begin
     update public.duitku_transactions
     set
       status = 'paid',
-      duitku_reference = coalesce(duitku_reference, p_reference),
+      duitku_reference = coalesce(duitku_reference, nullif(p_reference, '')),
       callback_result_code = p_result_code,
-      callback_reference = p_reference,
+      callback_reference = nullif(p_reference, ''),
       callback_payload = p_callback_payload,
       paid_at = coalesce(paid_at, now()),
       failure_reason = null
