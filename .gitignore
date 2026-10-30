@@ -1,0 +1,8 @@
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+supabase/functions/.env
+
+# Local Supabase state
+.supabase/
