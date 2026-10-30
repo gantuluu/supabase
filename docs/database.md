@@ -27,7 +27,7 @@ Stores every invoice attempt and its provider/callback metadata. Multiple histor
 
 ## Atomic callback
 
-The callback Edge Function verifies the provider HMAC before invoking the database RPC. The RPC locks the matching transaction row, checks merchant code, amount, reference, and result code, then updates the transaction and order together. A database error rolls back both changes.
+The callback Edge Function verifies the provider HMAC before invoking the database RPC. The RPC locks the order first and then the matching transaction row, checks merchant code, amount, reference, and result code, then updates the transaction and order together. A database error rolls back both changes.
 
 ## Lifecycle
 
