@@ -2,7 +2,6 @@ import {
   isRecord,
   md5Hex,
   isSupportedCallbackResultCode,
-  safeEqual,
   verifyPopCallbackSignature,
 } from "../_shared/duitku.ts";
 
