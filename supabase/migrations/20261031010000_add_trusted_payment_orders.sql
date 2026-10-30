@@ -200,4 +200,45 @@ revoke all on function public.apply_duitku_callback(text, bigint, text, text, te
 grant execute on function public.apply_duitku_callback(text, bigint, text, text, text, jsonb)
   to service_role;
 
+-- Called by an external scheduler through the protected expiry Edge Function.
+-- Order rows are locked before their pending transactions, matching callback lock order.
+create or replace function public.expire_pending_payment_orders(
+  p_as_of timestamptz default now()
+)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_expired_count integer;
+begin
+  with expired_orders as (
+    update public.payment_orders as o
+    set status = 'expired'
+    where o.status = 'pending'
+      and o.expires_at is not null
+      and o.expires_at <= p_as_of
+    returning o.id
+  ),
+  expired_transactions as (
+    update public.duitku_transactions as t
+    set
+      status = 'expired',
+      failure_reason = coalesce(t.failure_reason, 'Payment order expired')
+    where t.order_id in (select e.id from expired_orders as e)
+      and t.status = 'pending'
+    returning t.id
+  )
+  select count(*)::integer into v_expired_count from expired_orders;
+
+  return coalesce(v_expired_count, 0);
+end;
+$;
+
+revoke all on function public.expire_pending_payment_orders(timestamptz)
+  from public, anon, authenticated;
+grant execute on function public.expire_pending_payment_orders(timestamptz)
+  to service_role;
+
 revoke all on function public.set_updated_at() from public, anon, authenticated;
