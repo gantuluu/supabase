@@ -15,7 +15,7 @@ Trusted order snapshot. The upstream trusted backend writes this row only after 
 
 ### \`duitku_transactions\`
 
-Stores every invoice attempt and its provider/callback metadata. Multiple historical failed or expired attempts may exist for an order. A partial unique index permits at most one transaction with status pending or paid per non-null order ID.
+Stores every invoice attempt and its provider/callback metadata. Multiple historical failed or expired attempts may exist for an order. A partial unique index permits at most one pending transaction per non-null order ID. Multiple paid attempts remain representable so delayed provider notifications can be recorded and reconciled.
 
 ## Access control
 
