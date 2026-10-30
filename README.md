@@ -151,12 +151,11 @@ For local development, copy `supabase/functions/.env.example` to `supabase/funct
 
 ## Validation
 
-The GitHub Actions workflow checks formatting, lint, type checking, and the shared Deno tests. It does not connect to a Supabase project, apply migrations, or deploy functions.
+The GitHub Actions workflow runs Deno lint, type checking, and the shared Deno tests. It does not connect to a Supabase project, apply migrations, or deploy functions.
 
 Run locally:
 
 ```bash
-deno fmt --check supabase/functions
 deno lint supabase/functions
 deno check supabase/functions/duitku-create-invoice/index.ts
 deno check supabase/functions/duitku-callback/index.ts
