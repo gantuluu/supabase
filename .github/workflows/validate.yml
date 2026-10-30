@@ -31,6 +31,9 @@ jobs:
       - name: Type-check callback function
         run: deno check supabase/functions/duitku-callback/index.ts
 
+      - name: Type-check expiry function
+        run: deno check supabase/functions/duitku-expire-orders/index.ts
+
       - name: Run shared tests
         run: deno test supabase/functions/_shared
 
