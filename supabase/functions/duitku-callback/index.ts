@@ -211,6 +211,8 @@ Deno.serve(async (req: Request) => {
       case "failed":
       case "already_paid":
         return response("OK", 200);
+      case "pending":
+        return response("Duitku transaction is still pending", 503);
       case "not_found":
         return response("Transaction not found", 404);
       case "transaction_mismatch":
