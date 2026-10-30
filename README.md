@@ -107,7 +107,7 @@ Request body:
 - Confirms the order belongs to the authenticated user and is still payable.
 - Reads amount, currency, description, email, phone, and expiry from the database.
 - Does not accept client-supplied amount, product description, customer email, or expiry.
-- Uses a unique active-order index to prevent concurrent duplicate invoices.
+- Uses a unique pending-order index to prevent concurrent duplicate invoice creation while retaining historical paid/failed attempts.
 - Reuses a previously saved pending invoice.
 - Keeps ambiguous network/server outcomes pending for reconciliation instead of blindly creating another invoice.
 - Uses sandbox by default; set `DUITKU_ENV=production` only when production is approved.
