@@ -1,5 +1,6 @@
 import {
   hmacSha256Hex,
+  md5Hex,
   isSupportedCallbackResultCode,
   safeEqual,
 } from "./duitku.ts";
@@ -36,5 +37,11 @@ Deno.test("only documented Duitku callback result codes are accepted", () => {
     if (isSupportedCallbackResultCode(code)) {
       throw new Error(`Expected ${code} to be rejected`);
     }
+  }
+});
+
+Deno.test("Duitku status-check MD5 matches the standard test vector", () => {
+  if (md5Hex("abc") !== "900150983cd24fb0d6963f7d28e17f72") {
+    throw new Error("Unexpected MD5 digest");
   }
 });
