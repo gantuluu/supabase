@@ -165,6 +165,7 @@ Run locally:
 deno lint supabase/functions
 deno check supabase/functions/duitku-create-invoice/index.ts
 deno check supabase/functions/duitku-callback/index.ts
+deno check supabase/functions/duitku-expire-orders/index.ts
 deno test supabase/functions/_shared
 ```
 
