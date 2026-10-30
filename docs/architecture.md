@@ -9,9 +9,9 @@ No CI workflow in this repository applies migrations or deploys Edge Functions.
 ## Duitku payment flow
 
 1. A trusted application backend validates the user's cart/order and calculates the final amount.
-2. That backend inserts a `payment_orders` row using a backend-only Supabase key. The browser must not choose or write the authoritative amount.
+2. That backend inserts a `duitku_payment_orders` row using a backend-only Supabase key. The browser must not choose or write the authoritative amount.
 3. The authenticated user calls `duitku-create-invoice` with the order UUID.
-4. The function verifies the user's JWT, checks order ownership and payable state, and reads the amount and customer details from `payment_orders`.
+4. The function verifies the user's JWT, checks order ownership and payable state, and reads the amount and customer details from `duitku_payment_orders`.
 5. The function creates one pending Duitku invoice attempt for the order. A database partial unique index prevents concurrent pending attempts while preserving paid attempts for reconciliation.
 6. Duitku sends its signed callback to `duitku-callback`.
 7. The callback verifies the signature and invokes `public.apply_duitku_callback`.
