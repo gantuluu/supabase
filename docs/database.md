@@ -41,7 +41,7 @@ The callback Edge Function verifies the provider HMAC before invoking the databa
 - Verified status `01`: transaction remains `pending` until Duitku reports a final state.
 - Verified status `02`: transaction becomes `failed`; order remains `pending` so a later attempt can be created.
 - Order cancellation/expiry is owned by the trusted application backend or a separately reviewed scheduled process.
-- A late verified provider success is recorded as `paid`; the RPC returns a `late_payment` indicator when the order had already been cancelled or expired.
+- A late verified provider success is recorded as `paid`; the RPC returns a `late_payment` indicator when the order had already been cancelled, expired, or paid through another attempt.
 
 ## Expiry routine
 
