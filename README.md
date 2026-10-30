@@ -83,7 +83,7 @@ Migrations are the authoritative schema history. Do not maintain a second editab
 Current migrations:
 
 1. `20261031000000_create_duitku_transactions.sql`
-2. `20261031010000_add_trusted_duitku_payment_orders.sql`
+2. `20261031010000_add_trusted_payment_orders.sql`
 
 Apply migrations only after reviewing the target project and obtaining explicit deployment authorization:
 
