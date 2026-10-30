@@ -6,7 +6,7 @@ This repository is the version-controlled source of truth for Supabase database 
 
 ## Repository Structure
 
-\`\`\`text
+```text
 .
 ├── .github/workflows/validate.yml
 ├── database/
@@ -27,46 +27,46 @@ This repository is the version-controlled source of truth for Supabase database 
 ├── tests/
 │   └── README.md
 └── README.md
-\`\`\`
+```
 
 ## Current Database Objects
 
-### \`public.payment_orders\`
+### `public.payment_orders`
 
 A trusted order ledger. A trusted application backend must create these records after validating the cart/order and calculating the final amount. Browser clients must never choose the authoritative amount or write order rows directly.
 
 | Column | Purpose |
 | --- | --- |
-| \`id\` | Order UUID |
-| \`user_id\` | Owning Supabase Auth user |
-| \`amount\`, \`currency\` | Trusted amount in IDR |
-| \`product_details\` | Invoice description |
-| \`customer_email\`, \`customer_phone\` | Trusted customer contact |
-| \`status\` | \`pending\`, \`paid\`, \`cancelled\`, or \`expired\` |
-| \`expires_at\`, \`paid_at\` | Order lifecycle timestamps |
-| \`created_at\`, \`updated_at\` | Audit timestamps |
+| `id` | Order UUID |
+| `user_id` | Owning Supabase Auth user |
+| `amount`, `currency` | Trusted amount in IDR |
+| `product_details` | Invoice description |
+| `customer_email`, `customer_phone` | Trusted customer contact |
+| `status` | `pending`, `paid`, `cancelled`, or `expired` |
+| `expires_at`, `paid_at` | Order lifecycle timestamps |
+| `created_at`, `updated_at` | Audit timestamps |
 
-Authenticated users can only read their own order rows. Insert/update/delete privileges are not granted to \`anon\` or \`authenticated\`.
+Authenticated users can only read their own order rows. Insert/update/delete privileges are not granted to `anon` or `authenticated`.
 
-### \`public.duitku_transactions\`
+### `public.duitku_transactions`
 
 A payment-attempt ledger for Duitku POP.
 
 | Column | Purpose |
 | --- | --- |
-| \`id\` | Internal transaction UUID |
-| \`order_id\` | Associated trusted order; nullable only for legacy rows |
-| \`user_id\` | Authenticated owner |
-| \`merchant_order_id\` | Unique server-generated Duitku order ID |
-| \`merchant_code\`, \`amount\`, \`currency\` | Merchant and payment amount |
-| \`product_details\`, \`customer_email\`, \`customer_phone\` | Invoice details copied from trusted order |
-| \`payment_method\` | Optional Duitku payment method |
-| \`status\` | \`pending\`, \`paid\`, \`failed\`, or \`expired\` |
-| \`duitku_reference\`, \`payment_url\` | Duitku reference and checkout URL |
-| \`duitku_status_code\`, \`duitku_status_message\` | Create Invoice response metadata |
-| \`callback_result_code\`, \`callback_reference\`, \`callback_payload\` | Verified callback data |
-| \`paid_at\`, \`expires_at\`, \`failure_reason\` | Payment lifecycle metadata |
-| \`created_at\`, \`updated_at\` | Audit timestamps |
+| `id` | Internal transaction UUID |
+| `order_id` | Associated trusted order; nullable only for legacy rows |
+| `user_id` | Authenticated owner |
+| `merchant_order_id` | Unique server-generated Duitku order ID |
+| `merchant_code`, `amount`, `currency` | Merchant and payment amount |
+| `product_details`, `customer_email`, `customer_phone` | Invoice details copied from trusted order |
+| `payment_method` | Optional Duitku payment method |
+| `status` | `pending`, `paid`, `failed`, or `expired` |
+| `duitku_reference`, `payment_url` | Duitku reference and checkout URL |
+| `duitku_status_code`, `duitku_status_message` | Create Invoice response metadata |
+| `callback_result_code`, `callback_reference`, `callback_payload` | Verified callback data |
+| `paid_at`, `expires_at`, `failure_reason` | Payment lifecycle metadata |
+| `created_at`, `updated_at` | Audit timestamps |
 
 Authenticated users can only read their own transaction rows. Client-side writes are revoked. Service-role access is restricted to backend functions.
 
@@ -76,32 +76,32 @@ Migrations are the authoritative schema history. Do not maintain a second editab
 
 Current migrations:
 
-1. \`20261031000000_create_duitku_transactions.sql\`
-2. \`20261031010000_add_trusted_payment_orders.sql\`
+1. `20261031000000_create_duitku_transactions.sql`
+2. `20261031010000_add_trusted_payment_orders.sql`
 
 Apply migrations only after reviewing the target project and obtaining explicit deployment authorization:
 
-\`\`\`bash
+```bash
 supabase link --project-ref <project-ref>
 supabase db push
-\`\`\`
+```
 
 The commands above are documentation only; no database has been linked or changed as part of the repository remediation.
 
 ## Edge Functions
 
-### \`duitku-create-invoice\`
+### `duitku-create-invoice`
 
-Creates a Duitku POP invoice from a trusted \`payment_orders\` row.
+Creates a Duitku POP invoice from a trusted `payment_orders` row.
 
 Request body:
 
-\`\`\`json
+```json
 {
   "orderId": "00000000-0000-4000-8000-000000000000",
   "paymentMethod": "SP"
 }
-\`\`\`
+```
 
 - Requires a signed-in Supabase user JWT.
 - Confirms the order belongs to the authenticated user and is still payable.
@@ -110,23 +110,23 @@ Request body:
 - Uses a unique active-order index to prevent concurrent duplicate invoices.
 - Reuses a previously saved pending invoice.
 - Keeps ambiguous network/server outcomes pending for reconciliation instead of blindly creating another invoice.
-- Uses sandbox by default; set \`DUITKU_ENV=production\` only when production is approved.
+- Uses sandbox by default; set `DUITKU_ENV=production` only when production is approved.
 
-The upstream trusted application backend is responsible for creating \`payment_orders\` after validating the real cart/order. It must use a backend-only key and must not expose that key to a browser.
+The upstream trusted application backend is responsible for creating `payment_orders` after validating the real cart/order. It must use a backend-only key and must not expose that key to a browser.
 
-### \`duitku-callback\`
+### `duitku-callback`
 
 Receives Duitku POP payment notifications.
 
-- Public endpoint; \`verify_jwt = false\` because Duitku does not send a Supabase user JWT.
-- Accepts the documented \`application/x-www-form-urlencoded\` format.
-- Verifies the HMAC-SHA256 signature using \`merchantCode + amount + merchantOrderId\`.
+- Public endpoint; `verify_jwt = false` because Duitku does not send a Supabase user JWT.
+- Accepts the documented `application/x-www-form-urlencoded` format.
+- Verifies the HMAC-SHA256 signature using `merchantCode + amount + merchantOrderId`.
 - Validates merchant code, amount, merchant order ID, reference, and supported result code.
 - Rejects duplicate parameter names and invalid signatures.
-- Calls \`public.apply_duitku_callback\` to reconcile the transaction and order atomically.
-- Returns plain-text \`OK\` only after a successful reconciliation or confirmed duplicate.
+- Calls `public.apply_duitku_callback` to reconcile the transaction and order atomically.
+- Returns plain-text `OK` only after a successful reconciliation or confirmed duplicate.
 
-Duitku's POP callback documentation contains inconsistent failure-code references: the parameter table lists \`01\`, while the result-code table lists \`02\`. The implementation accepts both as failure and treats only \`00\` as paid. Unknown codes are rejected without changing transaction state.
+Duitku's POP callback documentation contains inconsistent failure-code references: the parameter table lists `01`, while the result-code table lists `02`. The implementation accepts both as failure and treats only `00` as paid. Unknown codes are rejected without changing transaction state.
 
 ## Secrets and Environment
 
@@ -136,18 +136,18 @@ Required Edge Function secrets:
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| \`DUITKU_MERCHANT_CODE\` | Yes | Duitku merchant code |
-| \`DUITKU_MERCHANT_KEY\` | Yes | Duitku HMAC merchant key |
-| \`DUITKU_CALLBACK_URL\` | Yes | Public HTTPS callback URL |
-| \`DUITKU_RETURN_URL\` | Yes | Customer return URL (HTTPS) |
-| \`DUITKU_ENV\` | No | \`sandbox\` (default) or \`production\` |
-| \`SUPABASE_URL\` | Yes | Supabase project URL |
-| \`SUPABASE_PUBLISHABLE_KEYS\` or \`SUPABASE_ANON_KEY\` | Yes | Validates the user access token |
-| \`SUPABASE_SECRET_KEYS\` or \`SUPABASE_SERVICE_ROLE_KEY\` | Yes | Backend-only database access |
+| `DUITKU_MERCHANT_CODE` | Yes | Duitku merchant code |
+| `DUITKU_MERCHANT_KEY` | Yes | Duitku HMAC merchant key |
+| `DUITKU_CALLBACK_URL` | Yes | Public HTTPS callback URL |
+| `DUITKU_RETURN_URL` | Yes | Customer return URL (HTTPS) |
+| `DUITKU_ENV` | No | `sandbox` (default) or `production` |
+| `SUPABASE_URL` | Yes | Supabase project URL |
+| `SUPABASE_PUBLISHABLE_KEYS` or `SUPABASE_ANON_KEY` | Yes | Validates the user access token |
+| `SUPABASE_SECRET_KEYS` or `SUPABASE_SERVICE_ROLE_KEY` | Yes | Backend-only database access |
 
-The current key-set variables are read from a JSON object containing a \`default\` property. Legacy anon/service-role variables are supported for compatibility. Use the Supabase Dashboard or CLI to configure secrets; never store their values in Git.
+The current key-set variables are read from a JSON object containing a `default` property. Legacy anon/service-role variables are supported for compatibility. Use the Supabase Dashboard or CLI to configure secrets; never store their values in Git.
 
-For local development, copy \`supabase/functions/.env.example\` to \`supabase/functions/.env\` and fill it with local test values. The actual \`.env\` file is ignored by Git.
+For local development, copy `supabase/functions/.env.example` to `supabase/functions/.env` and fill it with local test values. The actual `.env` file is ignored by Git.
 
 ## Validation
 
@@ -155,13 +155,13 @@ The GitHub Actions workflow checks formatting, lint, type checking, and the shar
 
 Run locally:
 
-\`\`\`bash
+```bash
 deno fmt --check supabase/functions
 deno lint supabase/functions
 deno check supabase/functions/duitku-create-invoice/index.ts
 deno check supabase/functions/duitku-callback/index.ts
 deno test supabase/functions/_shared
-\`\`\`
+```
 
 ## Security and Operational Boundaries
 
