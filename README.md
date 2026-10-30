@@ -126,13 +126,15 @@ Receives Duitku POP payment notifications.
 
 - Public endpoint; `verify_jwt = false` because Duitku does not send a Supabase user JWT.
 - Accepts the documented `application/x-www-form-urlencoded` format.
-- Verifies the HMAC-SHA256 signature using `merchantCode + amount + merchantOrderId`.
+- Verifies the POP callback HMAC-SHA256 signature using `merchantCode + amount + merchantOrderId`.
+- Independently queries Duitku POP `transactionStatus` using the official POP endpoint and MD5 request signature before applying the callback.
+- Checks the status response merchant order ID and amount; only verified `statusCode = "00"` is paid, `01` remains pending, and `02` is treated as cancelled/failed.
 - Validates merchant code, amount, merchant order ID, and supported result code; cross-checks the optional reference when Duitku supplies it.
 - Rejects duplicate parameter names and invalid signatures.
 - Calls `public.apply_duitku_callback` to reconcile the transaction and order atomically.
 - Returns plain-text `OK` only after a successful reconciliation or confirmed duplicate.
 
-Duitku's POP callback documentation contains inconsistent failure-code references: the parameter table lists `01`, while the result-code table lists `02`. The implementation accepts both as failure and treats only `00` as paid. Unknown codes are rejected without changing transaction state.
+Duitku's POP callback documentation contains inconsistent failure-code references: the parameter table lists `01`, while the result-code table lists `02`. The callback status is independently checked through `Pop::transactionStatus`; the status-check response documents `00` as success, `01` as pending, and `02` as cancelled. Unknown verified statuses are not settled.
 
 ### `duitku-expire-orders`
 
@@ -191,6 +193,7 @@ The `user_id` foreign keys use `ON DELETE RESTRICT` intentionally so deleting an
 ## References
 
 - [Duitku POP API documentation](https://docs.duitku.com/pop/en/)
+- [Duitku official PHP POP library](https://github.com/duitkupg/duitku-php)
 - [Supabase Edge Function secrets](https://supabase.com/docs/guides/functions/secrets)
 - [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Supabase CLI migrations](https://supabase.com/docs/guides/deployment/database-migrations)
