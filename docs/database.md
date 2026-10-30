@@ -7,6 +7,7 @@
 Trusted order snapshot. The upstream trusted backend writes this row only after calculating the final amount from authoritative application data.
 
 - `user_id` binds the order to a Supabase Auth user.
+- `source_order_id` uniquely identifies the canonical order in the upstream application and prevents duplicate payment snapshots.
 - `amount` is a positive integer in IDR.
 - `currency` is constrained to IDR for this integration.
 - `product_details` and customer fields are copied into the payment attempt.
