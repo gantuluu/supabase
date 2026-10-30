@@ -1,0 +1,8 @@
+# Supabase CLI local development configuration.
+# See https://supabase.com/docs/guides/local-development/cli/config
+
+project_id = "supabase"
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
