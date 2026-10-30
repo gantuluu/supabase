@@ -1,6 +1,7 @@
 import {
   hmacSha256Hex,
   isRecord,
+  md5Hex,
   isSupportedCallbackResultCode,
   safeEqual,
 } from "../_shared/duitku.ts";
@@ -96,6 +97,76 @@ Deno.serve(async (req: Request) => {
       return response("Invalid signature", 401);
     }
 
+    // Verify the provider's current transaction state before applying the callback.
+    // This endpoint is specifically exposed by Duitku's official POP PHP library.
+    const environment = (Deno.env.get("DUITKU_ENV") ?? "sandbox").toLowerCase();
+    if (environment !== "sandbox" && environment !== "production") {
+      return response("Invalid Duitku environment configuration", 500);
+    }
+
+    const statusSignature = md5Hex(merchantCode + merchantOrderId + merchantKey);
+    const statusEndpoint = environment === "production"
+      ? "https://api-prod.duitku.com/api/merchant/transactionStatus"
+      : "https://api-sandbox.duitku.com/api/merchant/transactionStatus";
+
+    let statusResponse: Response;
+    try {
+      statusResponse = await fetch(statusEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          merchantCode,
+          merchantOrderId,
+          signature: statusSignature,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch (error) {
+      console.error("Duitku status verification unavailable:", error instanceof Error ? error.message : "Unknown error");
+      return response("Transaction status verification unavailable", 503);
+    }
+
+    const statusText = await statusResponse.text();
+    let statusData: unknown;
+    try {
+      statusData = JSON.parse(statusText);
+    } catch {
+      statusData = null;
+    }
+
+    if (!statusResponse.ok || !isRecord(statusData)) {
+      console.error("Duitku status verification failed:", statusResponse.status);
+      return response("Transaction status verification failed", 503);
+    }
+
+    const verifiedAmountValue = typeof statusData.amount === "string" && /^\d+$/.test(statusData.amount)
+      ? Number(statusData.amount)
+      : statusData.amount;
+    if (
+      statusData.merchantOrderId !== merchantOrderId ||
+      typeof verifiedAmountValue !== "number" ||
+      !Number.isSafeInteger(verifiedAmountValue) ||
+      verifiedAmountValue !== Number(amountText)
+    ) {
+      console.warn("Duitku status response did not match callback transaction", { merchantOrderId });
+      return response("Verified transaction details mismatch", 400);
+    }
+
+    const verifiedStatusCode = statusData.statusCode;
+    if (verifiedStatusCode === "01") {
+      return response("Duitku transaction is still pending", 503);
+    }
+    if (verifiedStatusCode !== "00" && verifiedStatusCode !== "02") {
+      console.error("Unsupported Duitku transaction status:", verifiedStatusCode);
+      return response("Unsupported verified transaction status", 503);
+    }
+
+    const statusReference = typeof statusData.reference === "string" ? statusData.reference : "";
+    if (reference && statusReference && reference !== statusReference) {
+      console.warn("Duitku callback reference did not match status response", { merchantOrderId });
+      return response("Transaction reference mismatch", 400);
+    }
+
     const callbackPayload = {
       merchantCode: receivedMerchantCode,
       amount: amountText,
@@ -103,8 +174,11 @@ Deno.serve(async (req: Request) => {
       productDetail: data.productDetail ?? null,
       additionalParam: data.additionalParam ?? null,
       paymentCode: data.paymentCode ?? null,
-      resultCode,
-      reference: reference || null,
+      callbackResultCode: resultCode,
+      verifiedStatusCode,
+      callbackReference: reference || null,
+      statusReference: statusReference || null,
+      statusMessage: typeof statusData.statusMessage === "string" ? statusData.statusMessage : null,
       publisherOrderId: data.publisherOrderId ?? null,
       settlementDate: data.settlementDate ?? null,
     };
@@ -115,8 +189,8 @@ Deno.serve(async (req: Request) => {
         p_merchant_order_id: merchantOrderId,
         p_amount: Number(amountText),
         p_merchant_code: receivedMerchantCode,
-        p_result_code: resultCode,
-        p_reference: reference || null,
+        p_result_code: verifiedStatusCode,
+        p_reference: statusReference || null,
         p_callback_payload: callbackPayload,
       }),
     });
