@@ -2,7 +2,9 @@
 .env
 .env.*
 !.env.example
+!supabase/functions/.env.example
 supabase/functions/.env
 
-# Local Supabase state
+# Local Supabase state and generated artifacts
 .supabase/
+.DS_Store
