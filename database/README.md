@@ -1,6 +1,6 @@
 # Database Artifacts
 
-The authoritative database schema history is stored in \`supabase/migrations/\`.
+The authoritative database schema history is stored in `supabase/migrations/`.
 
 This directory is reserved for database design notes and generated reference material that does not replace migration files. Do not maintain hand-edited duplicate CREATE TABLE, policy, trigger, or index definitions here; duplicated SQL can drift from the migration history.
 
