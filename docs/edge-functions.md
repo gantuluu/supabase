@@ -32,7 +32,7 @@ Network timeouts, provider 5xx, malformed success responses, and persistence fai
 **Method:** POST  
 **JWT verification:** disabled because Duitku does not provide a Supabase user JWT. The handler validates the Duitku HMAC-SHA256 signature.
 
-The callback accepts URL-encoded form fields. Required validation fields include merchant code, amount, merchant order ID, result code, reference, and signature. Only `00` is success. Duitku's current POP page inconsistently documents `01` and `02` as failure codes; both are accepted as failure. Unknown codes are rejected.
+The callback accepts URL-encoded form fields. Required validation fields include merchant code, amount, merchant order ID, result code, and signature. The optional reference is cross-checked when supplied. Only `00` is success. Duitku's current POP page inconsistently documents `01` and `02` as failure codes; both are accepted as failure. Unknown codes are rejected.
 
 The callback calls `rpc/apply_duitku_callback`; transaction/order reconciliation is atomic inside PostgreSQL.
 
