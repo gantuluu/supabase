@@ -2,7 +2,7 @@
 
 ## Tables
 
-### `payment_orders`
+### `duitku_payment_orders`
 
 Trusted order snapshot. The upstream trusted backend writes this row only after calculating the final amount from authoritative application data.
 
@@ -43,6 +43,6 @@ The callback Edge Function verifies the provider HMAC before invoking the databa
 
 ## Expiry routine
 
-`public.expire_pending_payment_orders(p_as_of)` expires pending orders whose trusted `expires_at` has passed and their pending invoice attempts in one database transaction. It is executable only by `service_role`. The `duitku-expire-orders` Edge Function protects access with a separate shared secret; an external scheduler must invoke it. No scheduler is configured by this repository.
+`public.expire_pending_duitku_payment_orders(p_as_of)` expires pending orders whose trusted `expires_at` has passed and their pending invoice attempts in one database transaction. It is executable only by `service_role`. The `duitku-expire-orders` Edge Function protects access with a separate shared secret; an external scheduler must invoke it. No scheduler is configured by this repository.
 
 The expiry routine and callback routine lock the order before transaction rows, preserving a consistent lock order. A verified late success may still transition an expired order and transaction to paid, and is flagged for reconciliation.
