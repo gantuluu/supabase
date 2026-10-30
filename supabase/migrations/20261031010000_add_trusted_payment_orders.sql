@@ -183,7 +183,7 @@ begin
     set
       status = 'failed',
       callback_result_code = p_result_code,
-      callback_reference = p_reference,
+      callback_reference = nullif(p_reference, ''),
       callback_payload = p_callback_payload,
       failure_reason = 'Duitku resultCode ' || p_result_code
     where id = v_tx.id;
