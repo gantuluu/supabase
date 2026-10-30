@@ -1,0 +1,40 @@
+# Database Design
+
+## Tables
+
+### \`payment_orders\`
+
+Trusted order snapshot. The upstream trusted backend writes this row only after calculating the final amount from authoritative application data.
+
+- \`user_id\` binds the order to a Supabase Auth user.
+- \`amount\` is a positive integer in IDR.
+- \`currency\` is constrained to IDR for this integration.
+- \`product_details\` and customer fields are copied into the payment attempt.
+- \`status\` tracks pending, paid, cancelled, and expired.
+- \`expires_at\` is the authoritative order deadline.
+
+### \`duitku_transactions\`
+
+Stores every invoice attempt and its provider/callback metadata. Multiple historical failed or expired attempts may exist for an order. A partial unique index permits at most one transaction with status pending or paid per non-null order ID.
+
+## Access control
+
+- RLS is enabled on both tables.
+- Authenticated users can select only their own rows.
+- \`anon\` and \`authenticated\` have no direct write privileges.
+- Backend functions use a secret/service-role key.
+- \`apply_duitku_callback\` is a SECURITY DEFINER function with an empty search path and execute permission restricted to \`service_role\`.
+
+## Atomic callback
+
+The callback Edge Function verifies the provider HMAC before invoking the database RPC. The RPC locks the matching transaction row, checks merchant code, amount, reference, and result code, then updates the transaction and order together. A database error rolls back both changes.
+
+## Lifecycle
+
+- Invoice created: transaction \`pending\`, order \`pending\`.
+- Provider success (\`00\`): transaction and order become \`paid\`.
+- Provider failure (\`01\` or \`02\`): transaction becomes \`failed\`; order remains \`pending\` so a later attempt can be created.
+- Order cancellation/expiry is owned by the trusted application backend or a separately reviewed scheduled process.
+- A late verified provider success is recorded as \`paid\`; the RPC returns a \`late_payment\` indicator when the order had already been cancelled or expired.
+
+The migration does not create a scheduler or automatically expire orders. That behavior requires an application-specific operational policy.
