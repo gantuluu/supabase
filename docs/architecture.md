@@ -17,6 +17,7 @@ No CI workflow in this repository applies migrations or deploys Edge Functions.
 7. The callback validates the documented POP signature, then queries the official POP transaction-status endpoint and verifies the returned order ID, amount, and status.
 8. The callback invokes `public.apply_duitku_callback` only after status verification.
 9. The database function locks the order before its transaction row and updates the payment attempt and order in one database transaction.
+10. An external scheduler may call the protected expiry handler, which atomically expires overdue pending orders and invoice attempts.
 
 ## Trust boundaries
 
