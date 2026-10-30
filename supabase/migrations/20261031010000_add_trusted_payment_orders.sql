@@ -209,7 +209,7 @@ returns integer
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_expired_count integer;
 begin
