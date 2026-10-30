@@ -5,6 +5,7 @@
 create table if not exists public.duitku_payment_orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete restrict,
+  source_order_id text not null unique check (char_length(source_order_id) between 1 and 128),
   amount bigint not null check (amount > 0),
   currency text not null default 'IDR' check (currency = 'IDR'),
   product_details text not null check (char_length(product_details) between 1 and 255),
