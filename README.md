@@ -10,7 +10,9 @@ This repository is the version-controlled source of truth for Supabase database 
 .
 ├── .github/workflows/validate.yml
 ├── database/
-│   └── README.md
+│   ├── README.md
+│   └── types/
+│       └── README.md
 ├── docs/
 │   ├── architecture.md
 │   ├── database.md
