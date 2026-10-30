@@ -195,7 +195,6 @@ The `user_id` foreign keys use `ON DELETE RESTRICT` intentionally so deleting an
 - [Duitku POP API documentation](https://docs.duitku.com/pop/en/)
 - [Duitku transaction status API documentation](https://docs.duitku.com/api/id/)
 - [Duitku official PHP POP library](https://github.com/duitkupg/duitku-php)
-- [Duitku official PHP POP library](https://github.com/duitkupg/duitku-php)
 - [Supabase Edge Function secrets](https://supabase.com/docs/guides/functions/secrets)
 - [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Supabase CLI migrations](https://supabase.com/docs/guides/deployment/database-migrations)
