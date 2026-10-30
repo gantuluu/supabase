@@ -23,7 +23,7 @@ No CI workflow in this repository applies migrations or deploys Edge Functions.
 - Trusted application backend: may create trusted order rows after validating catalog/cart/discount/shipping/tax rules.
 - Invoice Edge Function: validates identity and order ownership; holds backend credentials.
 - Duitku: callback is unauthenticated at the Supabase JWT layer, but must pass merchant HMAC validation.
-- Database RPC: executable only by `service_role`; performs atomic payment/order reconciliation.
+- Database RPCs: executable only by `service_role`; perform atomic payment/order reconciliation and expiry.
 
 ## Ambiguous outcomes
 
