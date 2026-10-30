@@ -14,7 +14,7 @@ function response(body: string, status = 200): Response {
 
 function requiredEnv(name: string): string {
   const value = Deno.env.get(name)?.trim();
-  if (!value) throw new Error(\`Missing required environment variable: \${name}\`);
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
   return value;
 }
 
@@ -31,13 +31,13 @@ function adminHeaders(): Record<string, string> {
   const serviceRoleKey = requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
   return {
     apikey: serviceRoleKey,
-    Authorization: \`Bearer \${serviceRoleKey}\`,
+    Authorization: `Bearer ${serviceRoleKey}`,
     "Content-Type": "application/json",
   };
 }
 
 async function dbRequest(supabaseUrl: string, path: string, init: RequestInit = {}): Promise<Response> {
-  return await fetch(\`\${supabaseUrl}/rest/v1/\${path}\`, {
+  return await fetch(`${supabaseUrl}/rest/v1/${path}`, {
     ...init,
     headers: { ...adminHeaders(), ...(init.headers as Record<string, string> | undefined) },
   });
