@@ -42,6 +42,7 @@ A trusted order ledger. A trusted application backend must create these records 
 | --- | --- |
 | `id` | Order UUID |
 | `user_id` | Owning Supabase Auth user |
+| `source_order_id` | Unique ID of the canonical order in the upstream application |
 | `amount`, `currency` | Trusted amount in IDR |
 | `product_details` | Invoice description |
 | `customer_email`, `customer_phone` | Trusted customer contact |
@@ -117,7 +118,7 @@ Request body:
 - Keeps ambiguous network/server outcomes pending for reconciliation instead of blindly creating another invoice.
 - Uses sandbox by default; set `DUITKU_ENV=production` only when production is approved.
 
-The upstream trusted application backend is responsible for creating `duitku_payment_orders` after validating the real cart/order. It must use a backend-only key and must not expose that key to a browser.
+The upstream trusted application backend is responsible for creating one `duitku_payment_orders` row per canonical application order after validating the real cart/order. `source_order_id` is unique to prevent duplicate payment snapshots for the same upstream order. It must use a backend-only key and must not expose that key to a browser.
 
 ### `duitku-callback`
 
