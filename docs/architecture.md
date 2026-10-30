@@ -14,8 +14,9 @@ No CI workflow in this repository applies migrations or deploys Edge Functions.
 4. The function verifies the user's JWT, checks order ownership and payable state, and reads the amount and customer details from `duitku_payment_orders`.
 5. The function creates one pending Duitku invoice attempt for the order. A database partial unique index prevents concurrent pending attempts while preserving paid attempts for reconciliation.
 6. Duitku sends its signed callback to `duitku-callback`.
-7. The callback verifies the signature and invokes `public.apply_duitku_callback`.
-8. The database function locks the order before its transaction row and updates the payment attempt and order in one database transaction.
+7. The callback validates the documented POP signature, then queries the official POP transaction-status endpoint and verifies the returned order ID, amount, and status.
+8. The callback invokes `public.apply_duitku_callback` only after status verification.
+9. The database function locks the order before its transaction row and updates the payment attempt and order in one database transaction.
 
 ## Trust boundaries
 
