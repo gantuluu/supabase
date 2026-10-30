@@ -2,7 +2,7 @@
 
 The authoritative database schema history is stored in `supabase/migrations/`.
 
-This directory is reserved for database design notes and generated reference material that does not replace migration files. Do not maintain hand-edited duplicate CREATE TABLE, policy, trigger, or index definitions here; duplicated SQL can drift from the migration history.
+This directory is reserved for database design notes and generated reference material that does not replace migration files. The trusted payment-order snapshot includes a unique `source_order_id` that points to the canonical upstream application order. Do not maintain hand-edited duplicate CREATE TABLE, policy, trigger, or index definitions here; duplicated SQL can drift from the migration history.
 
 ## Rules
 
