@@ -42,8 +42,8 @@ alter table public.duitku_transactions
   add column if not exists order_id uuid
   references public.payment_orders(id) on delete restrict;
 
--- Permit historical failed/expired attempts while preventing concurrent active
--- invoices (and duplicate paid invoices) for the same order.
+-- Permit historical failed/expired attempts while preventing more than one
+-- pending invoice attempt for the same order. Verified payments remain historical records.
 create unique index if not exists duitku_transactions_one_active_order_idx
   on public.duitku_transactions (order_id)
   where order_id is not null and status = 'pending';
