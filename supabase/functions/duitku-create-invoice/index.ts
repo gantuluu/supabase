@@ -15,7 +15,7 @@ function json(data: unknown, status = 200): Response {
 
 function requiredEnv(name: string): string {
   const value = Deno.env.get(name)?.trim();
-  if (!value) throw new Error(\`Missing required environment variable: \${name}\`);
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
   return value;
 }
 
@@ -26,7 +26,7 @@ function getDefaultKey(jsonEnvName: string, legacyEnvName: string): string {
     if (isRecord(parsed) && typeof parsed.default === "string" && parsed.default.length > 0) {
       return parsed.default;
     }
-    throw new Error(\`\${jsonEnvName} must contain a default key\`);
+    throw new Error(`${jsonEnvName} must contain a default key`);
   }
   return requiredEnv(legacyEnvName);
 }
@@ -44,7 +44,7 @@ function adminHeaders(): Record<string, string> {
   const serviceRoleKey = requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
   return {
     apikey: serviceRoleKey,
-    Authorization: \`Bearer \${serviceRoleKey}\`,
+    Authorization: `Bearer ${serviceRoleKey}`,
     "Content-Type": "application/json",
   };
 }
@@ -54,7 +54,7 @@ async function dbRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  return await fetch(\`\${supabaseUrl}/rest/v1/\${path}\`, {
+  return await fetch(`${supabaseUrl}/rest/v1/${path}`, {
     ...init,
     headers: { ...adminHeaders(), ...(init.headers as Record<string, string> | undefined) },
   });
@@ -66,10 +66,10 @@ async function getAuthenticatedUserId(req: Request, supabaseUrl: string): Promis
   if (!match) return null;
 
   const publishableKey = getDefaultKey("SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_ANON_KEY");
-  const response = await fetch(\`\${supabaseUrl}/auth/v1/user\`, {
+  const response = await fetch(`${supabaseUrl}/auth/v1/user`, {
     headers: {
       apikey: publishableKey,
-      Authorization: \`Bearer \${match[1]}\`,
+      Authorization: `Bearer ${match[1]}`,
     },
   });
   if (!response.ok) return null;
@@ -117,11 +117,11 @@ async function loadActiveTransaction(
 ): Promise<Record<string, unknown> | null> {
   const query = new URLSearchParams({
     select: "id,merchant_order_id,duitku_reference,payment_url,amount,currency,status",
-    order_id: \`eq.\${orderId}\`,
+    order_id: `eq.${orderId}`,
     status: "in.(pending,paid)",
     limit: "1",
   });
-  const response = await dbRequest(supabaseUrl, \`duitku_transactions?\${query.toString()}\`);
+  const response = await dbRequest(supabaseUrl, `duitku_transactions?${query.toString()}`);
   if (!response.ok) throw new Error("Could not check existing payment transaction");
   const rows: unknown = await response.json();
   return Array.isArray(rows) && isRecord(rows[0]) ? rows[0] : null;
@@ -153,11 +153,11 @@ Deno.serve(async (req: Request) => {
 
     const orderQuery = new URLSearchParams({
       select: "id,user_id,amount,currency,product_details,customer_email,customer_phone,status,expires_at",
-      id: \`eq.\${input.orderId}\`,
-      user_id: \`eq.\${userId}\`,
+      id: `eq.${input.orderId}`,
+      user_id: `eq.${userId}`,
       limit: "1",
     });
-    const orderResponse = await dbRequest(supabaseUrl, \`payment_orders?\${orderQuery.toString()}\`);
+    const orderResponse = await dbRequest(supabaseUrl, `payment_orders?${orderQuery.toString()}`);
     if (!orderResponse.ok) {
       console.error("Could not load payment order:", await orderResponse.text());
       return json({ success: false, error: "Could not load payment order" }, 500);
@@ -226,11 +226,11 @@ Deno.serve(async (req: Request) => {
     for (const [name, value] of [["DUITKU_CALLBACK_URL", callbackUrl], ["DUITKU_RETURN_URL", returnUrl]]) {
       const parsed = new URL(value);
       if (parsed.protocol !== "https:") {
-        return json({ success: false, error: \`\${name} must use HTTPS\` }, 500);
+        return json({ success: false, error: `${name} must use HTTPS` }, 500);
       }
     }
 
-    const merchantOrderId = \`TRX-\${crypto.randomUUID().replaceAll("-", "").toUpperCase()}\`;
+    const merchantOrderId = `TRX-${crypto.randomUUID().replaceAll("-", "").toUpperCase()}`;
     const insertResponse = await dbRequest(supabaseUrl, "duitku_transactions?select=id,merchant_order_id", {
       method: "POST",
       headers: { Prefer: "return=representation" },
@@ -306,7 +306,7 @@ Deno.serve(async (req: Request) => {
     } catch (error) {
       // A timeout/network error is ambiguous: Duitku may have created the invoice.
       // Keep the row pending so a retry cannot silently create a second invoice.
-      await dbRequest(supabaseUrl, \`duitku_transactions?id=eq.\${transactionId}\`, {
+      await dbRequest(supabaseUrl, `duitku_transactions?id=eq.${transactionId}`, {
         method: "PATCH",
         body: JSON.stringify({ failure_reason: "Duitku request outcome is unknown; reconcile before retrying" }),
       });
@@ -328,14 +328,14 @@ Deno.serve(async (req: Request) => {
 
     if (!duitkuResponse.ok) {
       if (duitkuResponse.status >= 500) {
-        await dbRequest(supabaseUrl, \`duitku_transactions?id=eq.\${transactionId}\`, {
+        await dbRequest(supabaseUrl, `duitku_transactions?id=eq.${transactionId}`, {
           method: "PATCH",
           body: JSON.stringify({ failure_reason: "Duitku server error; reconcile before retrying" }),
         });
         return json({ success: false, error: "Duitku server error; transaction requires reconciliation", transactionId }, 502);
       }
 
-      await dbRequest(supabaseUrl, \`duitku_transactions?id=eq.\${transactionId}\`, {
+      await dbRequest(supabaseUrl, `duitku_transactions?id=eq.${transactionId}`, {
         method: "PATCH",
         body: JSON.stringify({
           status: "failed",
@@ -348,7 +348,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (isRecord(responseData) && responseData.statusCode !== "00") {
-      await dbRequest(supabaseUrl, \`duitku_transactions?id=eq.\${transactionId}\`, {
+      await dbRequest(supabaseUrl, `duitku_transactions?id=eq.${transactionId}`, {
         method: "PATCH",
         body: JSON.stringify({
           status: "failed",
@@ -373,7 +373,7 @@ Deno.serve(async (req: Request) => {
     ) {
       // A malformed success response may still represent a created invoice.
       // Keep the transaction locked for manual reconciliation.
-      await dbRequest(supabaseUrl, \`duitku_transactions?id=eq.\${transactionId}\`, {
+      await dbRequest(supabaseUrl, `duitku_transactions?id=eq.${transactionId}`, {
         method: "PATCH",
         body: JSON.stringify({ failure_reason: "Duitku response could not be validated; reconcile before retrying" }),
       });
@@ -384,7 +384,7 @@ Deno.serve(async (req: Request) => {
       }, 502);
     }
 
-    const updateResponse = await dbRequest(supabaseUrl, \`duitku_transactions?id=eq.\${transactionId}\`, {
+    const updateResponse = await dbRequest(supabaseUrl, `duitku_transactions?id=eq.${transactionId}`, {
       method: "PATCH",
       headers: { Prefer: "return=minimal" },
       body: JSON.stringify({
