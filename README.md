@@ -34,7 +34,7 @@ This repository is the version-controlled source of truth for Supabase database 
 
 ## Current Database Objects
 
-### `public.payment_orders`
+### `public.duitku_payment_orders`
 
 A trusted order ledger. A trusted application backend must create these records after validating the cart/order and calculating the final amount. Browser clients must never choose the authoritative amount or write order rows directly.
 
@@ -82,7 +82,7 @@ Migrations are the authoritative schema history. Do not maintain a second editab
 Current migrations:
 
 1. `20261031000000_create_duitku_transactions.sql`
-2. `20261031010000_add_trusted_payment_orders.sql`
+2. `20261031010000_add_trusted_duitku_payment_orders.sql`
 
 Apply migrations only after reviewing the target project and obtaining explicit deployment authorization:
 
@@ -97,7 +97,7 @@ The commands above are documentation only; no database has been linked or change
 
 ### `duitku-create-invoice`
 
-Creates a Duitku POP invoice from a trusted `payment_orders` row.
+Creates a Duitku POP invoice from a trusted `duitku_payment_orders` row.
 
 Request body:
 
@@ -117,7 +117,7 @@ Request body:
 - Keeps ambiguous network/server outcomes pending for reconciliation instead of blindly creating another invoice.
 - Uses sandbox by default; set `DUITKU_ENV=production` only when production is approved.
 
-The upstream trusted application backend is responsible for creating `payment_orders` after validating the real cart/order. It must use a backend-only key and must not expose that key to a browser.
+The upstream trusted application backend is responsible for creating `duitku_payment_orders` after validating the real cart/order. It must use a backend-only key and must not expose that key to a browser.
 
 ### `duitku-callback`
 
