@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
 
     const supabaseUrl = requiredEnv("SUPABASE_URL").replace(/\/$/, "");
     const rpcResponse = await fetch(
-      `${supabaseUrl}/rest/v1/rpc/expire_pending_payment_orders`,
+      `${supabaseUrl}/rest/v1/rpc/expire_pending_duitku_payment_orders`,
       {
         method: "POST",
         headers: adminHeaders(),
