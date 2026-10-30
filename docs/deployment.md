@@ -20,9 +20,10 @@ supabase link --project-ref <project-ref>
 supabase db push
 supabase functions deploy duitku-create-invoice
 supabase functions deploy duitku-callback
+supabase functions deploy duitku-expire-orders
 ```
 
-These commands are documentation only. They are not run by the GitHub workflow and were not executed during this remediation.
+These commands are documentation only. They are not run by the GitHub workflow and were not executed during this remediation. Configure `PAYMENT_EXPIRY_SECRET` as an Edge Function secret before enabling an external scheduler for `duitku-expire-orders`.
 
 ## Secret management
 
