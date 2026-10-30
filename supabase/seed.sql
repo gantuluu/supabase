@@ -1,2 +1,3 @@
--- Development seed data.
--- Add INSERT statements here after the corresponding migrations exist.
+-- Development seed data only.
+-- Never insert real customer, order, payment, or credential data here.
+-- Add deterministic fixtures only after the corresponding migrations exist.
