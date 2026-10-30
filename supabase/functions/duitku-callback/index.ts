@@ -80,7 +80,6 @@ Deno.serve(async (req: Request) => {
       !Number.isSafeInteger(Number(amountText)) ||
       !merchantOrderId ||
       merchantOrderId.length > 50 ||
-      !reference ||
       reference.length > 100 ||
       !isSupportedCallbackResultCode(resultCode) ||
       !/^[a-f0-9]{64}$/.test(receivedSignature)
@@ -105,7 +104,7 @@ Deno.serve(async (req: Request) => {
       additionalParam: data.additionalParam ?? null,
       paymentCode: data.paymentCode ?? null,
       resultCode,
-      reference,
+      reference: reference || null,
       publisherOrderId: data.publisherOrderId ?? null,
       settlementDate: data.settlementDate ?? null,
     };
@@ -117,7 +116,7 @@ Deno.serve(async (req: Request) => {
         p_amount: Number(amountText),
         p_merchant_code: receivedMerchantCode,
         p_result_code: resultCode,
-        p_reference: reference,
+        p_reference: reference || null,
         p_callback_payload: callbackPayload,
       }),
     });
@@ -141,7 +140,6 @@ Deno.serve(async (req: Request) => {
       case "not_found":
         return response("Transaction not found", 404);
       case "transaction_mismatch":
-      case "reference_required":
       case "reference_mismatch":
         return response("Transaction validation failed", 400);
       case "unsupported_result_code":
