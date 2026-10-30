@@ -26,8 +26,8 @@ export async function hmacSha256Hex(secret: string, message: string): Promise<st
 }
 
 export function isSupportedCallbackResultCode(value: string): boolean {
-  // Duitku's POP callback page contains both 01 (parameter table) and 02
-  // (result-code table) as failure codes. Only 00 is ever treated as paid.
+  // The POP callback documentation is inconsistent about 01/02. Accept both
+  // callback values, but settle from the independent status-check response.
   return value === "00" || value === "01" || value === "02";
 }
 
