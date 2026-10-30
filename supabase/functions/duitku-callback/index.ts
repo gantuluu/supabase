@@ -1,9 +1,9 @@
 import {
-  hmacSha256Hex,
   isRecord,
   md5Hex,
   isSupportedCallbackResultCode,
   safeEqual,
+  verifyPopCallbackSignature,
 } from "../_shared/duitku.ts";
 
 function response(body: string, status = 200): Response {
@@ -83,16 +83,19 @@ Deno.serve(async (req: Request) => {
       merchantOrderId.length > 50 ||
       reference.length > 100 ||
       !isSupportedCallbackResultCode(resultCode) ||
-      !/^[a-f0-9]{64}$/.test(receivedSignature)
+      !/^(?:[a-f0-9]{32}|[a-f0-9]{64})$/.test(receivedSignature)
     ) {
       return response("Invalid callback parameters", 400);
     }
 
-    const expectedSignature = await hmacSha256Hex(
+    const signatureValid = await verifyPopCallbackSignature(
+      receivedMerchantCode,
+      amountText,
+      merchantOrderId,
       merchantKey,
-      receivedMerchantCode + amountText + merchantOrderId,
+      receivedSignature,
     );
-    if (!safeEqual(expectedSignature, receivedSignature)) {
+    if (!signatureValid) {
       console.warn("Rejected Duitku callback: invalid signature");
       return response("Invalid signature", 401);
     }
