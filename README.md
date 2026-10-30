@@ -126,7 +126,7 @@ Receives Duitku POP payment notifications.
 
 - Public endpoint; `verify_jwt = false` because Duitku does not send a Supabase user JWT.
 - Accepts the documented `application/x-www-form-urlencoded` format.
-- Verifies the POP callback HMAC-SHA256 signature using `merchantCode + amount + merchantOrderId`.
+- Verifies the current POP HMAC-SHA256 callback signature and the legacy MD5 signature used by Duitku's official PHP POP library.
 - Independently queries Duitku POP `transactionStatus` using the official POP endpoint and MD5 request signature before applying the callback.
 - Checks the status response merchant order ID and amount; only verified `statusCode = "00"` is paid, `01` remains pending, and `02` is treated as cancelled/failed.
 - Validates merchant code, amount, merchant order ID, and supported result code; cross-checks the optional reference when Duitku supplies it.
