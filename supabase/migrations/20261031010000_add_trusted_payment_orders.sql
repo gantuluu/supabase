@@ -46,7 +46,7 @@ alter table public.duitku_transactions
 -- invoices (and duplicate paid invoices) for the same order.
 create unique index if not exists duitku_transactions_one_active_order_idx
   on public.duitku_transactions (order_id)
-  where order_id is not null and status in ('pending', 'paid');
+  where order_id is not null and status = 'pending';
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -89,6 +89,29 @@ declare
   v_order_status text;
   v_late_payment boolean := false;
 begin
+  -- Find the order relation first, then lock order before transaction. This
+  -- consistent lock order serializes callbacks for different attempts of one order.
+  select t.id, t.order_id
+  into v_tx
+  from public.duitku_transactions as t
+  where t.merchant_order_id = p_merchant_order_id;
+
+  if not found then
+    return jsonb_build_object('outcome', 'not_found');
+  end if;
+
+  if v_tx.order_id is not null then
+    select o.status
+    into v_order_status
+    from public.payment_orders as o
+    where o.id = v_tx.order_id
+    for update;
+
+    if not found then
+      raise exception 'Payment order % not found for transaction %', v_tx.order_id, v_tx.id;
+    end if;
+  end if;
+
   select
     t.id,
     t.order_id,
@@ -98,12 +121,8 @@ begin
     t.duitku_reference
   into v_tx
   from public.duitku_transactions as t
-  where t.merchant_order_id = p_merchant_order_id
+  where t.id = v_tx.id
   for update;
-
-  if not found then
-    return jsonb_build_object('outcome', 'not_found');
-  end if;
 
   if v_tx.amount <> p_amount or v_tx.merchant_code <> p_merchant_code then
     return jsonb_build_object('outcome', 'transaction_mismatch');
@@ -117,7 +136,7 @@ begin
     return jsonb_build_object('outcome', 'reference_mismatch');
   end if;
 
-  if p_result_code not in ('00', '01', '02') then
+  if p_result_code is null or p_result_code not in ('00', '01', '02') then
     return jsonb_build_object('outcome', 'unsupported_result_code');
   end if;
 
@@ -126,6 +145,24 @@ begin
   end if;
 
   if p_result_code = '00' then
+    if v_tx.order_id is not null then
+      -- A delayed success from an earlier attempt may arrive after a retry has
+      -- created a newer pending invoice. Close those pending attempts first.
+      update public.duitku_transactions
+      set
+        status = 'expired',
+        failure_reason = 'Superseded by another verified payment for this order'
+      where order_id = v_tx.order_id
+        and id <> v_tx.id
+        and status = 'pending';
+
+      v_late_payment := v_order_status in ('cancelled', 'expired', 'paid');
+
+      update public.payment_orders
+      set status = 'paid', paid_at = coalesce(paid_at, now())
+      where id = v_tx.order_id;
+    end if;
+
     update public.duitku_transactions
     set
       status = 'paid',
@@ -136,23 +173,6 @@ begin
       paid_at = coalesce(paid_at, now()),
       failure_reason = null
     where id = v_tx.id;
-
-    if v_tx.order_id is not null then
-      select o.status into v_order_status
-      from public.payment_orders as o
-      where o.id = v_tx.order_id
-      for update;
-
-      if not found then
-        raise exception 'Payment order % not found for transaction %', v_tx.order_id, v_tx.id;
-      end if;
-
-      v_late_payment := v_order_status in ('cancelled', 'expired');
-
-      update public.payment_orders
-      set status = 'paid', paid_at = coalesce(paid_at, now())
-      where id = v_tx.order_id;
-    end if;
 
     return jsonb_build_object(
       'outcome', 'paid',
