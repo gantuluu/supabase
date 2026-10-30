@@ -34,3 +34,17 @@ export function isSupportedCallbackResultCode(value: string): boolean {
 export function md5Hex(message: string): string {
   return createHash("md5").update(message, "utf8").digest("hex");
 }
+
+export async function verifyPopCallbackSignature(
+  merchantCode: string,
+  amount: string,
+  merchantOrderId: string,
+  merchantKey: string,
+  receivedSignature: string,
+): Promise<boolean> {
+  const signedFields = merchantCode + amount + merchantOrderId;
+  const currentSignature = await hmacSha256Hex(merchantKey, signedFields);
+  const legacyLibrarySignature = md5Hex(signedFields + merchantKey);
+  return safeEqual(currentSignature, receivedSignature) ||
+    safeEqual(legacyLibrarySignature, receivedSignature);
+}
