@@ -30,7 +30,7 @@ Network timeouts, provider 5xx, malformed success responses, and persistence fai
 ## duitku-callback
 
 **Method:** POST  
-**JWT verification:** disabled because Duitku does not provide a Supabase user JWT. The handler validates the Duitku HMAC-SHA256 signature.
+**JWT verification:** disabled because Duitku does not provide a Supabase user JWT. The handler accepts the current documented HMAC-SHA256 callback signature and the legacy MD5 signature implemented by Duitku's official PHP POP library. Both are followed by an independent status query before settlement.
 
 The callback accepts URL-encoded form fields. It validates merchant code, amount, merchant order ID, result code, and signature; the optional callback reference is cross-checked when supplied.
 
