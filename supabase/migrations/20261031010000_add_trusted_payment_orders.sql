@@ -2,7 +2,7 @@
 -- Orders must be created by a trusted server using a backend-only key.
 -- Browser clients receive read-only access to their own order rows.
 
-create table if not exists public.payment_orders (
+create table if not exists public.duitku_payment_orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete restrict,
   amount bigint not null check (amount > 0),
@@ -18,29 +18,29 @@ create table if not exists public.payment_orders (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists payment_orders_user_created_idx
-  on public.payment_orders (user_id, created_at desc);
-create index if not exists payment_orders_status_created_idx
-  on public.payment_orders (status, created_at desc);
+create index if not exists duitku_payment_orders_user_created_idx
+  on public.duitku_payment_orders (user_id, created_at desc);
+create index if not exists duitku_payment_orders_status_created_idx
+  on public.duitku_payment_orders (status, created_at desc);
 
-alter table public.payment_orders enable row level security;
+alter table public.duitku_payment_orders enable row level security;
 
 drop policy if exists "Users can read their own payment orders"
-  on public.payment_orders;
+  on public.duitku_payment_orders;
 create policy "Users can read their own payment orders"
-  on public.payment_orders
+  on public.duitku_payment_orders
   for select
   to authenticated
   using ((select auth.uid()) = user_id);
 
-revoke all on table public.payment_orders from anon, authenticated;
-grant select on table public.payment_orders to authenticated;
-grant all on table public.payment_orders to service_role;
+revoke all on table public.duitku_payment_orders from anon, authenticated;
+grant select on table public.duitku_payment_orders to authenticated;
+grant all on table public.duitku_payment_orders to service_role;
 grant all on table public.duitku_transactions to service_role;
 
 alter table public.duitku_transactions
   add column if not exists order_id uuid
-  references public.payment_orders(id) on delete restrict;
+  references public.duitku_payment_orders(id) on delete restrict;
 
 -- Permit historical failed/expired attempts while preventing more than one
 -- pending invoice attempt for the same order. Verified payments remain historical records.
@@ -59,9 +59,9 @@ begin
 end;
 $$;
 
-drop trigger if exists payment_orders_set_updated_at on public.payment_orders;
-create trigger payment_orders_set_updated_at
-before update on public.payment_orders
+drop trigger if exists duitku_payment_orders_set_updated_at on public.duitku_payment_orders;
+create trigger duitku_payment_orders_set_updated_at
+before update on public.duitku_payment_orders
 for each row execute function public.set_updated_at();
 
 drop trigger if exists duitku_transactions_set_updated_at on public.duitku_transactions;
@@ -103,7 +103,7 @@ begin
   if v_tx.order_id is not null then
     select o.status
     into v_order_status
-    from public.payment_orders as o
+    from public.duitku_payment_orders as o
     where o.id = v_tx.order_id
     for update;
 
@@ -158,7 +158,7 @@ begin
 
       v_late_payment := v_order_status in ('cancelled', 'expired', 'paid');
 
-      update public.payment_orders
+      update public.duitku_payment_orders
       set status = 'paid', paid_at = coalesce(paid_at, now())
       where id = v_tx.order_id;
     end if;
@@ -202,7 +202,7 @@ grant execute on function public.apply_duitku_callback(text, bigint, text, text,
 
 -- Called by an external scheduler through the protected expiry Edge Function.
 -- Order rows are locked before their pending transactions, matching callback lock order.
-create or replace function public.expire_pending_payment_orders(
+create or replace function public.expire_pending_duitku_payment_orders(
   p_as_of timestamptz default now()
 )
 returns integer
@@ -214,7 +214,7 @@ declare
   v_expired_count integer;
 begin
   with expired_orders as (
-    update public.payment_orders as o
+    update public.duitku_payment_orders as o
     set status = 'expired'
     where o.status = 'pending'
       and o.expires_at is not null
@@ -236,9 +236,9 @@ begin
 end;
 $;
 
-revoke all on function public.expire_pending_payment_orders(timestamptz)
+revoke all on function public.expire_pending_duitku_payment_orders(timestamptz)
   from public, anon, authenticated;
-grant execute on function public.expire_pending_payment_orders(timestamptz)
+grant execute on function public.expire_pending_duitku_payment_orders(timestamptz)
   to service_role;
 
 revoke all on function public.set_updated_at() from public, anon, authenticated;
