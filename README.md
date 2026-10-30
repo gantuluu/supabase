@@ -22,7 +22,8 @@ This repository is the version-controlled source of truth for Supabase database 
 │   ├── functions/
 │   │   ├── _shared/
 │   │   ├── duitku-create-invoice/
-│   │   └── duitku-callback/
+│   │   ├── duitku-callback/
+│   │   └── duitku-expire-orders/
 │   └── seed.sql
 ├── tests/
 │   └── README.md
@@ -128,6 +129,10 @@ Receives Duitku POP payment notifications.
 
 Duitku's POP callback documentation contains inconsistent failure-code references: the parameter table lists `01`, while the result-code table lists `02`. The implementation accepts both as failure and treats only `00` as paid. Unknown codes are rejected without changing transaction state.
 
+### `duitku-expire-orders`
+
+Expires pending orders and their pending invoice attempts through an atomic database RPC. The endpoint has `verify_jwt = false` and requires the `x-expiry-secret` header matching the `PAYMENT_EXPIRY_SECRET` secret. Invoke it from a separately configured external scheduler; this repository does not configure or run a scheduler.
+
 ## Secrets and Environment
 
 Never commit real keys, tokens, passwords, or production environment files.
@@ -141,6 +146,7 @@ Required Edge Function secrets:
 | `DUITKU_CALLBACK_URL` | Yes | Public HTTPS callback URL |
 | `DUITKU_RETURN_URL` | Yes | Customer return URL (HTTPS) |
 | `DUITKU_ENV` | No | `sandbox` (default) or `production` |
+| `PAYMENT_EXPIRY_SECRET` | For expiry handler | High-entropy secret used by the external scheduler |
 | `SUPABASE_URL` | Yes | Supabase project URL |
 | `SUPABASE_PUBLISHABLE_KEYS` or `SUPABASE_ANON_KEY` | Yes | Validates the user access token |
 | `SUPABASE_SECRET_KEYS` or `SUPABASE_SERVICE_ROLE_KEY` | Yes | Backend-only database access |
