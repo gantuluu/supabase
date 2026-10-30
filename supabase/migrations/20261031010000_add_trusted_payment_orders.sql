@@ -142,6 +142,10 @@ begin
     return jsonb_build_object('outcome', 'already_paid');
   end if;
 
+  if p_result_code = '01' then
+    return jsonb_build_object('outcome', 'pending');
+  end if;
+
   if p_result_code = '00' then
     if v_tx.order_id is not null then
       -- A delayed success from an earlier attempt may arrive after a retry has
