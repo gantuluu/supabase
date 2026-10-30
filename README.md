@@ -127,7 +127,7 @@ Receives Duitku POP payment notifications.
 - Public endpoint; `verify_jwt = false` because Duitku does not send a Supabase user JWT.
 - Accepts the documented `application/x-www-form-urlencoded` format.
 - Verifies the HMAC-SHA256 signature using `merchantCode + amount + merchantOrderId`.
-- Validates merchant code, amount, merchant order ID, reference, and supported result code.
+- Validates merchant code, amount, merchant order ID, and supported result code; cross-checks the optional reference when Duitku supplies it.
 - Rejects duplicate parameter names and invalid signatures.
 - Calls `public.apply_duitku_callback` to reconcile the transaction and order atomically.
 - Returns plain-text `OK` only after a successful reconciliation or confirmed duplicate.
