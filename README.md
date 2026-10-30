@@ -71,6 +71,8 @@ A payment-attempt ledger for Duitku POP.
 
 Authenticated users can only read their own transaction rows. Client-side writes are revoked. Service-role access is restricted to backend functions.
 
+**Data API requirement:** the `public` schema must be enabled in the target project's Exposed schemas because these Edge Functions use Supabase PostgREST for table and RPC access. Keep table grants and RLS restrictive; exposing a schema does not require granting client write access.
+
 ## Database Migrations
 
 Migrations are the authoritative schema history. Do not maintain a second editable copy of table definitions.
@@ -168,6 +170,10 @@ deno check supabase/functions/duitku-callback/index.ts
 deno check supabase/functions/duitku-expire-orders/index.ts
 deno test supabase/functions/_shared
 ```
+
+## Account Deletion and Financial Records
+
+The `user_id` foreign keys use `ON DELETE RESTRICT` intentionally so deleting an Auth user cannot silently erase payment/order audit history. An application account-deletion process must first follow the applicable retention policy and use an approved anonymization workflow for customer PII. Do not change these foreign keys to `CASCADE` without a reviewed financial-record retention decision.
 
 ## Security and Operational Boundaries
 
