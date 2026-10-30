@@ -52,7 +52,7 @@ create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
 set search_path = ''
-as $$
+as $$$
 begin
   new.updated_at = now();
   return new;
@@ -234,7 +234,7 @@ begin
 
   return coalesce(v_expired_count, 0);
 end;
-$;
+$$;
 
 revoke all on function public.expire_pending_duitku_payment_orders(timestamptz)
   from public, anon, authenticated;
