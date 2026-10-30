@@ -231,14 +231,15 @@ Deno.serve(async (req: Request) => {
       responseData = { message: responseText.slice(0, 500) };
     }
 
-    const validDuitkuResponse = isRecord(responseData) &&
-      responseData.statusCode === "00" &&
-      typeof responseData.reference === "string" &&
-      responseData.reference.length > 0 &&
-      typeof responseData.paymentUrl === "string" &&
-      responseData.paymentUrl.startsWith("https://");
-
-    if (!duitkuResponse.ok || !validDuitkuResponse) {
+    if (
+      !duitkuResponse.ok ||
+      !isRecord(responseData) ||
+      responseData.statusCode !== "00" ||
+      typeof responseData.reference !== "string" ||
+      responseData.reference.length === 0 ||
+      typeof responseData.paymentUrl !== "string" ||
+      !responseData.paymentUrl.startsWith("https://")
+    ) {
       await dbRequest(supabaseUrl, `duitku_transactions?id=eq.${transactionId}`, {
         method: "PATCH",
         body: JSON.stringify({
