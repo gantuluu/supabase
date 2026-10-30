@@ -14,7 +14,7 @@ Request:
 }
 ```
 
-Only `orderId` is required. `paymentMethod` is optional. Amount, currency, product description, email, phone, and expiration are read from the trusted `payment_orders` record.
+Only `orderId` is required. `paymentMethod` is optional. Amount, currency, product description, email, phone, and expiration are read from the trusted `duitku_payment_orders` record.
 
 Responses:
 - `200`: invoice created or an existing pending invoice safely reused.
@@ -41,7 +41,7 @@ The callback calls `rpc/apply_duitku_callback`; transaction/order reconciliation
 **Method:** POST  
 **JWT verification:** disabled; access requires the high-entropy `PAYMENT_EXPIRY_SECRET` in the `x-expiry-secret` header.
 
-Calls `rpc/expire_pending_payment_orders` to expire pending orders whose trusted deadline has passed, along with their pending invoice attempts. Invoke it from an external scheduler at an appropriate interval. No schedule is installed by this repository.
+Calls `rpc/expire_pending_duitku_payment_orders` to expire pending orders whose trusted deadline has passed, along with their pending invoice attempts. Invoke it from an external scheduler at an appropriate interval. No schedule is installed by this repository.
 
 ## Shared code and tests
 
