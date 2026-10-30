@@ -14,3 +14,7 @@ verify_jwt = true
 # Duitku calls this webhook directly; the function verifies Duitku's HMAC signature.
 [functions.duitku-callback]
 verify_jwt = false
+
+# External scheduler calls this endpoint with PAYMENT_EXPIRY_SECRET.
+[functions.duitku-expire-orders]
+verify_jwt = false
