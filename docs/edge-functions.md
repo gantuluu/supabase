@@ -36,6 +36,13 @@ The callback accepts URL-encoded form fields. Required validation fields include
 
 The callback calls `rpc/apply_duitku_callback`; transaction/order reconciliation is atomic inside PostgreSQL.
 
+## duitku-expire-orders
+
+**Method:** POST  
+**JWT verification:** disabled; access requires the high-entropy `PAYMENT_EXPIRY_SECRET` in the `x-expiry-secret` header.
+
+Calls `rpc/expire_pending_payment_orders` to expire pending orders whose trusted deadline has passed, along with their pending invoice attempts. Invoke it from an external scheduler at an appropriate interval. No schedule is installed by this repository.
+
 ## Shared code and tests
 
 Shared HMAC, comparison, and result-code helpers live in `supabase/functions/_shared/duitku.ts`. Their Deno tests are in `supabase/functions/_shared/duitku.test.ts`.
