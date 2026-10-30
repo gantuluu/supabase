@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -27,4 +29,8 @@ export function isSupportedCallbackResultCode(value: string): boolean {
   // Duitku's POP callback page contains both 01 (parameter table) and 02
   // (result-code table) as failure codes. Only 00 is ever treated as paid.
   return value === "00" || value === "01" || value === "02";
+}
+
+export function md5Hex(message: string): string {
+  return createHash("md5").update(message, "utf8").digest("hex");
 }
