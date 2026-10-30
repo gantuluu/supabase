@@ -7,7 +7,7 @@ This repository does not automatically connect to or modify a Supabase project.
 1. Review every migration and Edge Function change.
 2. Confirm the exact Supabase project reference and that the operator has access.
 3. Configure required Edge Function secrets outside GitHub.
-4. Confirm the trusted upstream backend creates valid `payment_orders` rows.
+4. Confirm the trusted upstream backend creates valid `duitku_payment_orders` rows.
 5. Run local tests and inspect CI results.
 6. Obtain explicit authorization before applying migrations or deploying functions.
 
