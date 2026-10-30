@@ -25,6 +25,10 @@ Stores every invoice attempt and its provider/callback metadata. Multiple histor
 - Backend functions use a secret/service-role key.
 - `apply_duitku_callback` is a SECURITY DEFINER function with an empty search path and execute permission restricted to `service_role`.
 
+## Account deletion and retention
+
+Both order and transaction records reference `auth.users` with `ON DELETE RESTRICT`. This prevents accidental deletion of financial history when an Auth user is removed. Account deletion must follow an approved retention policy and anonymize personal fields where legally permitted; do not cascade-delete payment history. The exact retention period and anonymization fields must be confirmed against the application's legal and accounting requirements before implementation.
+
 ## Atomic callback
 
 The callback Edge Function verifies the provider HMAC before invoking the database RPC. The RPC locks the order first and then the matching transaction row, checks merchant code, amount, reference, and result code, then updates the transaction and order together. A database error rolls back both changes.
