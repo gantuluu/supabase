@@ -25,14 +25,20 @@ jobs:
       - name: Lint Edge Functions
         run: deno lint supabase/functions
 
-      - name: Type-check invoice function
+      - name: Type-check Duitku invoice function
         run: deno check supabase/functions/duitku-create-invoice/index.ts
 
-      - name: Type-check callback function
+      - name: Type-check Duitku callback function
         run: deno check supabase/functions/duitku-callback/index.ts
 
-      - name: Type-check expiry function
+      - name: Type-check Duitku expiry function
         run: deno check supabase/functions/duitku-expire-orders/index.ts
+
+      - name: Type-check Poketo invoice function
+        run: deno check supabase/functions/poketo-create-invoice/index.ts
+
+      - name: Type-check Poketo webhook function
+        run: deno check supabase/functions/poketo-webhook/index.ts
 
       - name: Run shared tests
         run: deno test supabase/functions/_shared
