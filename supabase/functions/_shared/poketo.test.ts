@@ -11,7 +11,7 @@ Deno.test("Poketo HMAC-SHA256 matches the standard test vector", async () => {
     "key",
     "The quick brown fox jumps over the lazy dog",
   );
-  if (digest !== "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175979dbc2d1a3cd8") {
+  if (digest !== "f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8") {
     throw new Error("Unexpected HMAC-SHA256 digest");
   }
 });
