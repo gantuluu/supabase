@@ -18,3 +18,11 @@ verify_jwt = false
 # External scheduler calls this endpoint with PAYMENT_EXPIRY_SECRET.
 [functions.duitku-expire-orders]
 verify_jwt = false
+
+# Poketo invoice creation requires a signed-in application user.
+[functions.poketo-create-invoice]
+verify_jwt = true
+
+# Poketo calls this endpoint directly; the function verifies Poketo's signed raw body.
+[functions.poketo-webhook]
+verify_jwt = false
